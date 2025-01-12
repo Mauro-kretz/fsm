@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2024
  * 
  */
-#ifndef FSM_H
-#define FSM_H
+#ifndef FSM_H_
+#define FSM_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -210,7 +210,7 @@ void fsm_terminate(fsm_t *fsm, int val);
  * @param fsm 
  * @return int 
  */
-int fsm_has_pending_events(fsm_t *fsm);
+int FSM_H_as_pending_events(fsm_t *fsm);
 
 /**
  * @brief Fluches all pending events. 
@@ -219,4 +219,4 @@ int fsm_has_pending_events(fsm_t *fsm);
  */
 void fsm_flush_events(fsm_t *fsm);
 
-#endif /* FSM_H */
+#endif /* FSM_H_ */
