@@ -9,6 +9,7 @@ class fsm_mermaid:
     mermaid_tail = "\n```"
     
     fsm_init_pat = r"FSM_STATES_INIT\((.+?)\)"
+    fsm_st_note = "FSM_ST_NONE"
     
     def __init__(self, fname="example"):
         
@@ -77,6 +78,9 @@ class fsm_mermaid:
         #Get states
         self.fsm_states_get()
         
+        # parse states 
+        self.fsm_states_parse()
+        
         #Get transitions
         self.fsm_transitions_get()
                 
@@ -109,7 +113,31 @@ class fsm_mermaid:
                 idx = idx + 1
             self.fsm_transitions = elements
             # print(f"fsm state: {elements}")
-            
+    
+    def fsm_states_parse(self):
+        self.fsm_st_root_n = []
+        self.fsm_st = []
+        idx = 0
+        
+        # Find root state
+        for element in self.fsm_states:
+            print(f"state: {element}")
+                    
+            # Find root state
+            if element[1] == self.fsm_st_note:
+                self.fsm_st.append(element[0])     
+                self.fsm_st_root_n.append(idx)
+                print(f"arr: {self.fsm_st}, idx: {self.fsm_st_root_n}")
+                break
+            idx = idx + 1
+                
+        # Get state sub-states
+        self.fsm_sub_get(element[0])
+    
+    def fsm_sub_get(self, state, idx):
+        for element in self.fsm_states:
+            if element[1] == state:
+                     
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
