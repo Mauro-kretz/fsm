@@ -1,4 +1,22 @@
+# Author Mauro Medina <mauro93medina@gmail.com>
 
+"""Command-line state machine graph builder library
+
+This script takes a .c file that implemets a finite state machine using the FSM library macros:
+
+    * FSM_STATES_INIT
+    * FSM_CREATE_STATE
+    * FSM_TRANSITIONS_INIT
+    * FSM_TRANSITION_CREATE
+    
+Usage: Call script from command line 
+
+    - python fsm_2_mermaid file_name
+    
+    Where file_name is the .c file that implements the fsm (has to have FSM_CREATE_STATE and FSM_TRANSITION_CREATE somewhere)
+    
+"""
+    
 import argparse
 import re
 
@@ -36,15 +54,9 @@ class fsm_mermaid:
             
             # Opens or creates the file in write mode and add content
             self.mermaid_file_write()
-    
-    def mermaid_file_write(self):
-        with open(self.fsm_name+".md", "w") as file:
-            # Head
-            file.write(self.mermaid_head)
-            file.write(self.mermaid_format)  
-            #tail
-            file.write(self.mermaid_tail)  
-                
+
+#------------------------------------------------------------------------------
+               
     def fsm_count(self):
         """Counts the number of fsm in file
         """
@@ -57,8 +69,6 @@ class fsm_mermaid:
                 # Check if the pattern is found in the line
                 if re.search(self.fsm_init_pat, line):
                     self.fsm_total += 1
-        
-        # print(f"n fsm: {self.fsm_total}")
          
         return self.fsm_total
     
@@ -68,9 +78,56 @@ class fsm_mermaid:
 
         if match[self.fsm_new]:
             self.fsm_name = match[self.fsm_new]
+        
+    def fsm_states_get(self):
+        pattern = rf"FSM_CREATE_STATE\({self.fsm_name},\s*(.+?)\)"
+        self.fsm_states = []
+        
+        # Get the fsm states
+        match = re.findall(pattern, self.content)
+
+        if match:
+            idx = 0
+            elements = match
+            for line in match:
+                elements[idx] = [item.strip() for item in line.split(',')]
+                idx = idx + 1
+            self.fsm_states = elements
+    
+    def fsm_transitions_get(self):
+        pattern = rf"FSM_TRANSITION_CREATE\({self.fsm_name},\s*(.+?)\)"
+        self.fsm_transitions = []
+        
+        # Get the fsm states
+        match = re.findall(pattern, self.content)
+
+        if match:
+            idx = 0
+            elements = match
+            for line in match:
+                elements[idx] = [item.strip() for item in line.split(',')]
+                idx = idx + 1
+            self.fsm_transitions = elements
+    
+    def fsm_states_parse(self):
+        self.fsm_st = []
+        element_list = []
+        idx = 0
+        
+        for element in self.fsm_states:
+            # Parent state
+            if element[2] != self.fsm_st_note:    
+                element_list.append(element[0])
+                element_list.append(element[2])
+                for new_el in self.fsm_states:  
+                    # Find sub state
+                    if new_el[1] == element[0]:
+                        element_list.append(new_el[0])
             
-        # print(f"fsm name: {self.match[self.fsm_new]}")
-                        
+                # Add parent and sub states
+                self.fsm_st.append(element_list)
+                element_list = []
+    
     def fsm_parse(self):  
         # Get fsm name      
         self.fsm_name_get()
@@ -83,61 +140,32 @@ class fsm_mermaid:
         
         #Get transitions
         self.fsm_transitions_get()
-                
-    def fsm_states_get(self):
-        pattern = rf"FSM_CREATE_STATE\({self.fsm_name},\s*(.+?)\)"
         
-        # Get the fsm states
-        match = re.findall(pattern, self.content)
+    def mermaid_file_write(self):
+        with open(self.fsm_name+".md", "w") as file:
+            # Head
+            file.write(self.mermaid_head)
+            file.write(self.mermaid_format)  
+            # States
+            for state in self.fsm_st:
+                file.write("\tstate ")
+                file.write(str(state[0]))
+                file.write(" {\n")
+                file.write("\t\t[*] --> ")
+                file.write(str(state[1])+"\n")
 
-        if match:
-            idx = 0
-            elements = match
-            for line in match:
-                elements[idx] = [item.strip() for item in line.split(',')]
-                idx = idx + 1
-            self.fsm_states = elements
-            # print(f"fsm state: {elements}")
-    
-    def fsm_transitions_get(self):
-        pattern = rf"FSM_TRANSITION_CREATE\({self.fsm_name},\s*(.+?)\)"
-        
-        # Get the fsm states
-        match = re.findall(pattern, self.content)
-
-        if match:
-            idx = 0
-            elements = match
-            for line in match:
-                elements[idx] = [item.strip() for item in line.split(',')]
-                idx = idx + 1
-            self.fsm_transitions = elements
-            # print(f"fsm state: {elements}")
-    
-    def fsm_states_parse(self):
-        self.fsm_st_root_n = []
-        self.fsm_st = []
-        idx = 0
-        
-        # Find root state
-        for element in self.fsm_states:
-            print(f"state: {element}")
+                for sub in state[2:]:
+                    file.write("\t\t"+str(sub)+"\n")
                     
-            # Find root state
-            if element[1] == self.fsm_st_note:
-                self.fsm_st.append(element[0])     
-                self.fsm_st_root_n.append(idx)
-                print(f"arr: {self.fsm_st}, idx: {self.fsm_st_root_n}")
-                break
-            idx = idx + 1
-                
-        # Get state sub-states
-        self.fsm_sub_get(element[0])
-    
-    def fsm_sub_get(self, state, idx):
-        for element in self.fsm_states:
-            if element[1] == state:
-                     
+                file.write("\t}\n\n")
+            #Transitions
+            if self.fsm_transitions != []:
+                for trans in self.fsm_transitions:
+                    file.write(f"\t {trans[0]} --> {trans[2]} : {trans[1]}\n")
+                   
+            #tail
+            file.write(self.mermaid_tail)
+                            
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
