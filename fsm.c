@@ -20,16 +20,6 @@
 #include "ring_buff.h"
 #endif 
 
-/* LOGGING MODULE REGISTER */
-#ifdef RTT_CONSOLE
-#include "SRC/RTT/rtt_log.h"
-/// @brief Terminal RTT de logeo
-#define FSM_RTT_TERMINAL 1	
-/// @brief Nivel de Debug para logeo
-#define FSM_RTT_LEVEL 2		
-
-RTT_LOG_REGISTER(fsm, FSM_RTT_LEVEL, FSM_RTT_TERMINAL);
-#endif
 struct internal_ctx {
 	int terminate:  1;
 	int is_exit:    1;
@@ -109,9 +99,6 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
 #else
     ringbuff_init(&fsm->event_queue, fsm->events_buff, FSM_MAX_EVENTS, sizeof(struct fsm_events_t));
 #endif
-#ifdef RTT_CONSOLE
-    RTT_LOG("Init: %d\n", initial_state->state_id);
-#endif
     enter_state(fsm, initial_state, initial_state, initial_data);
 
     return 0;
@@ -160,9 +147,6 @@ static int fsm_process_events(fsm_t *fsm) {
 #else
     while (ringbuff_get(&fsm->event_queue, &current_event) == 0) {
 #endif    
-#ifdef RTT_CONSOLE        
-        RTT_LOG("Event process: %d, state: %d\n", current_event.event, fsm->current_state->state_id);
-#endif
         internal->handled = 0;
 
         fsm_state_t* current = fsm->current_state;
@@ -171,9 +155,7 @@ static int fsm_process_events(fsm_t *fsm) {
             for (size_t i = 0; i < fsm->num_transitions; ++i) {
                 if (fsm->transitions[i].source_state == current && fsm->transitions[i].event == current_event.event) {
                     fsm_state_t* lca = find_lca(fsm->current_state, fsm->transitions[i].target_state);
-#ifdef RTT_CONSOLE                        
-                    RTT_LOG("Transition: %d to %d, lcs %d\n", current->state_id, fsm->transitions[i].target_state->state_id, lca->state_id);
-#endif
+
                     exit_state(fsm, lca, current_event.data);
                     enter_state(fsm, lca, fsm->transitions[i].target_state, current_event.data);
 
@@ -236,9 +218,7 @@ void fsm_terminate(fsm_t *fsm, int val)
     if(fsm == NULL) return;
 
     struct internal_ctx *const internal = (void *)&fsm->internal;
-#ifdef RTT_CONSOLE
-    RTT_LOG("FSM terminated\n");
-#endif
+
     internal->terminate = true;
     fsm->terminate_val = val;  
 }
