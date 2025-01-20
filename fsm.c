@@ -20,13 +20,14 @@
 #else
 #include "ring_buff.h"
 #endif 
-
+#include "esp_log.h"
 struct internal_ctx {
 	int terminate:  1;
 	int is_exit:    1;
     int handled:    1;
 };
 
+static const char *TAG = "fsm";
 
 static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *target, void *data) {
     fsm_state_t* state_path[MAX_HIERARCHY_DEPTH];
@@ -56,6 +57,12 @@ static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *t
     {
         if(lca->entry_action) lca->entry_action(fsm, data);
     }
+    
+    // Actors
+    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    {
+        if((fsm->actors[i]->state_id == state_target->state_id) && (fsm->actors[i]->entry_action != NULL)) fsm->actors[i]->entry_action(fsm, data);
+    }
 
     fsm->current_state = (fsm_state_t*)state_target;
 }
@@ -65,6 +72,12 @@ static void exit_state(fsm_t *fsm, const fsm_state_t *state, void *data) {
         if (s->exit_action) {
             s->exit_action(fsm, data);
         }
+    }
+    // Actors
+    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    {
+        ESP_LOGI(TAG, "for %d, st %d", (int)i, (int) fsm->actors[i]->state_id);
+        if((fsm->actors[i]->state_id == state->state_id) && (fsm->actors[i]->exit_action != NULL)) fsm->actors[i]->exit_action(fsm, data);
     }
 }
 
@@ -118,6 +131,8 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     internal->is_exit        = false;
     fsm->current_data        = initial_data;
 
+    memset(fsm->actors, 0, sizeof(fsm->actors));
+
     fsm_smart_events_init(fsm);
 
 #ifdef FREERTOS_API
@@ -131,14 +146,15 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     return 0;
 }
 
-int fsm_actor_link(fsm_t *fsm, fsm_actor_t* actor) {
+int fsm_actor_link(fsm_t *fsm, fsm_actor_t *actor) {
     
     for (uint16_t i = 0; i < FSM_MAX_ACTORS; i++)
     {
         // Search empty spot
-        if(fsm->actors[i]->source_state->state_id == 0)
+        if(fsm->actors[i] == NULL)
         {
             fsm->actors[i] = actor;
+            ESP_LOGI(TAG, "link %d, st %d", (int)i, (int)fsm->actors[i]->state_id);
 
             return 0;
         }
@@ -244,6 +260,13 @@ int fsm_run(fsm_t *fsm)
     // Run state
     if (fsm->current_state->run_action) {
         fsm->current_state->run_action(fsm, fsm->current_data);
+    }
+
+    // Actors
+    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    {
+        ESP_LOGI(TAG, "for %d, st %d", (int)i, (int) fsm->actors[i]->state_id);
+        if((fsm->actors[i]->state_id == fsm->current_state->state_id) && (fsm->actors[i]->run_action != NULL)) fsm->actors[i]->run_action(fsm, fsm->current_data);
     }
 
     return 0;

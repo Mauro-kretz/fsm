@@ -68,6 +68,12 @@
  */
 #define FSM_EV_FIRST 1
 
+/**
+ * @brief FSM FIRST ACTOR
+ * 
+ */
+#define FSM_ACTOR_FIRST 1
+
 //----------------------------------------------------------------------
 //	MACROS
 //----------------------------------------------------------------------
@@ -118,13 +124,9 @@
     .target_state = (fsm_state_t*)&_name##_states[_target_id],          \
 },                          
 
-#define FSM_TRANSITIONS_GET(name) name##_transitions
-#define FSM_TRANSITIONS_SIZE(name) ((sizeof(name##_transitions)/sizeof(name##_transitions[0])-1))
-
-#define FSM_STATE_GET(name, id)   name##_states[id]
 
 // actor table definition
-#define FSM_ACTOR_INIT(name) static const fsm_actor_t name##_actor[] = { [0] = {0},
+#define FSM_ACTOR_INIT(name) static fsm_actor_t name##_actor[] = { [0] = {0},
 #define FSM_ACTOR_END()   };
 
 /**
@@ -136,13 +138,20 @@
  * @param _target_id Target state ID
  * 
  */
-#define FSM_ACTOR_CREATE(_name, _source_id, _entry, _run, _exit)    \
-{                                                                   \
-    .source_state   = (fsm_state_t*)&_name##_actor[_source_id],     \
-    .entry_action   = _entry,                                       \
-    .exit_action    = _exit,                                        \
-    .run_action     = _run,                                         \
+#define FSM_ACTOR_CREATE(_fsm_name, _source_id, _entry, _run, _exit)    \
+{                                                                       \
+    .state_id   = _source_id,                                       \
+    .entry_action   = _entry,                                           \
+    .exit_action    = _exit,                                            \
+    .run_action     = _run,                                             \
 },    
+
+#define FSM_TRANSITIONS_GET(name) name##_transitions
+#define FSM_TRANSITIONS_SIZE(name) ((sizeof(name##_transitions)/sizeof(name##_transitions[0])-1))
+
+#define FSM_STATE_GET(name, id)   name##_states[id]
+
+#define FSM_ACTOR_GET(name)   name##_actor
 //----------------------------------------------------------------------
 //	DECLARATIONS
 //----------------------------------------------------------------------
@@ -184,7 +193,7 @@ struct fsm_events_t
 
 typedef struct {
     // State relevant to actor
-    fsm_state_t* source_state;
+    int state_id;
     // Work to be done
     void (*entry_action)(fsm_t* self, void* data);
     void (*exit_action)(fsm_t* self, void* data);
@@ -240,7 +249,7 @@ int fsm_init(fsm_t *fsm,
             const fsm_state_t* initial_state, 
             void *initial_data);
 
-int fsm_actor_link(fsm_t *fsm, fsm_actor_t* actor);
+int fsm_actor_link(fsm_t *fsm, fsm_actor_t *actor);
 
 /**
  * @brief Dispatches an event to the state machine. It will be process when fsm_run is called.
