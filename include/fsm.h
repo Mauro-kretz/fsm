@@ -14,7 +14,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "sdkconfig.h"
+
+#ifdef CONFIG_FREERTOS_PORT
+#define FREERTOS_API
+#endif
+
+#ifdef FREERTOS_API
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#else
 #include "ring_buff.h"
+#endif 
 
 //----------------------------------------------------------------------
 //	DEFINES
@@ -141,8 +152,12 @@ struct fsm_t {
     const fsm_transition_t *transitions;
     // Total number of transitions
     size_t num_transitions;
-    // Events ring buffer 
+    // Events ring buffer
+#ifdef FREERTOS_API
+    QueueHandle_t event_queue;
+#else
     struct ringbuff event_queue;
+#endif 
     struct fsm_events_t events_buff[FSM_MAX_EVENTS];
     // Current state running
     fsm_state_t* current_state;
@@ -167,7 +182,7 @@ struct fsm_t {
  * @param initial_state     Default first state
  * @param initial_data      User custom data struct pointer
  */
-void fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, const fsm_state_t* initial_state, void *initial_data);
+int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, const fsm_state_t* initial_state, void *initial_data);
 
 /**
  * @brief Dispatches an event to the state machine. It will be process when fsm_run is called.
@@ -210,7 +225,7 @@ void fsm_terminate(fsm_t *fsm, int val);
  * @param fsm 
  * @return int 
  */
-int FSM_H_as_pending_events(fsm_t *fsm);
+int fsm_has_pending_events(fsm_t *fsm);
 
 /**
  * @brief Fluches all pending events. 
