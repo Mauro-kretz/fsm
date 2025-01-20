@@ -62,7 +62,7 @@ FSM_TRANSITIONS_END()
 
 ```c
 fsm_t my_fsm;
-fsm_init(&my_fsm, my_fsm_transitions, FSM_TRANSITIONS_SIZE(my_fsm), &FSM_STATE_GET(my_fsm, INIT_ST), initial_data);
+fsm_init(&my_fsm, my_fsm_transitions, FSM_TRANSITIONS_SIZE(my_fsm), num_events, &FSM_STATE_GET(my_fsm, INIT_ST), initial_data);
 ```
 
 ### Running the FSM
@@ -83,6 +83,7 @@ fsm_dispatch(&my_fsm, EVENT1, event_data);
 
 - `FSM_MAX_EVENTS`: Maximum number of events in the queue (default: 64)
 - `MAX_HIERARCHY_DEPTH`: Maximum depth of state hierarchy (default: 8)
+- `FSM_MAX_TRANSITIONS`: Maximum number of transitions that an event can trigger (default: 8)
 
 ## Best Practices
 
