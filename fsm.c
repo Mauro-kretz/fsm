@@ -10,6 +10,7 @@
  */
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "fsm.h"
 
@@ -80,7 +81,30 @@ static fsm_state_t* find_lca(fsm_state_t *s1, fsm_state_t *s2) {
     return a;
 }
 
-int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, const fsm_state_t* initial_state, void *initial_data) {
+static void fsm_smart_events_init(fsm_t *fsm)
+{
+    uint32_t idx = 0;
+
+    memset(fsm->smart_event, 0, sizeof(fsm_smt_events_t));
+
+    // Sorts transitions by event id
+    for (int i = FSM_EV_FIRST; i <= (fsm->num_events+FSM_EV_FIRST); i++)
+    {
+        for (int j = 1; j <= fsm->num_transitions; j++)
+        {
+            if(fsm->transitions[j].event == i)
+            {
+                fsm->smart_event[i].source_state[idx] = fsm->transitions[j].source_state;
+                fsm->smart_event[i].target_state[idx] = fsm->transitions[j].target_state;
+                if(++idx >= FSM_MAX_TRANSITIONS) break;
+            }
+        }
+        idx = 0;
+    }
+    
+}
+
+int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, size_t num_events, const fsm_state_t* initial_state, void *initial_data) {
     struct internal_ctx *const internal = (void *)&fsm->internal;
 
     if(fsm == NULL || transitions == NULL || initial_state == NULL) return -1;
@@ -88,10 +112,13 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
 
     fsm->transitions         = transitions;
     fsm->num_transitions     = num_transitions;
+    fsm->num_events          = num_events;
     fsm->terminate_val       = 0;   
     internal->terminate      = false;
     internal->is_exit        = false;
     fsm->current_data        = initial_data;
+
+    fsm_smart_events_init(fsm);
 
 #ifdef FREERTOS_API
     fsm->event_queue = xQueueCreate(FSM_MAX_EVENTS, sizeof(struct fsm_events_t));
@@ -133,7 +160,6 @@ static int fsm_process_events(fsm_t *fsm) {
 
     struct fsm_events_t current_event;
 
-    // Ver si proceso todos los eventos o de a uno (actualmente procesa todos)
 #ifdef FREERTOS_API
     int event_ready = 0;
     if(xPortInIsrContext())
@@ -152,12 +178,14 @@ static int fsm_process_events(fsm_t *fsm) {
         fsm_state_t* current = fsm->current_state;
         while (internal->handled == 0 && current != NULL) 
         {
-            for (size_t i = 0; i < fsm->num_transitions; ++i) {
-                if (fsm->transitions[i].source_state == current && fsm->transitions[i].event == current_event.event) {
-                    fsm_state_t* lca = find_lca(fsm->current_state, fsm->transitions[i].target_state);
+            for (int i = 0; (i < FSM_MAX_TRANSITIONS+1) && (fsm->smart_event[current_event.event].source_state[i] != NULL); i++)
+            {
+                if(fsm->smart_event[current_event.event].source_state[i] == current)
+                {
+                    fsm_state_t* lca = find_lca(fsm->current_state, fsm->smart_event[current_event.event].target_state[i]);
 
                     exit_state(fsm, lca, current_event.data);
-                    enter_state(fsm, lca, fsm->transitions[i].target_state, current_event.data);
+                    enter_state(fsm, lca, fsm->smart_event[current_event.event].target_state[i], current_event.data);
 
                     /* No need to continue if terminate was set in the exit action */
                     if (internal->terminate) {
