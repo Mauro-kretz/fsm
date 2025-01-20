@@ -35,20 +35,21 @@ enum {
 
 // Define events
 enum {
-    EV_POWER = FSM_EV_FIRST,       // 0
-    EV_PLAY,            // 1
-    EV_PAUSE,           // 2
-    EV_STOP,            // 3
-    EV_NEXT,            // 4
-    EV_PREV,            // 5
-    EV_MODE_CHANGE,     // 6
-    EV_MENU,            // 7
-    EV_VOLUME_UP,       // 8
-    EV_VOLUME_DOWN,     // 9
-    EV_SELECT,          // 10
-    EV_BACK,            // 11
-    EV_LOW_BATTERY,     // 12
-    EV_CHARGE           // 13
+    EV_POWER = FSM_EV_FIRST,    // 1
+    EV_PLAY,                    // 2
+    EV_PAUSE,                   // 3
+    EV_STOP,                    // 4
+    EV_NEXT,                    // 5
+    EV_PREV,                    // 6
+    EV_MODE_CHANGE,             // 7
+    EV_MENU,                    // 8
+    EV_VOLUME_UP,               // 9
+    EV_VOLUME_DOWN,             // 10
+    EV_SELECT,                  // 11
+    EV_BACK,                    // 12
+    EV_LOW_BATTERY,             // 13
+    EV_CHARGE,                  // 14
+    EV_LAST,                    // 15
 };
 
 // Action function prototypes
@@ -152,7 +153,7 @@ int main() {
     // Simulate music player actions
     print("--- Starting Complex Music Player Simulation ---\n");
 
-    fsm_init(&music_player, FSM_TRANSITIONS_GET(music_player), FSM_TRANSITIONS_SIZE(music_player),
+    fsm_init(&music_player, FSM_TRANSITIONS_GET(music_player), FSM_TRANSITIONS_SIZE(music_player), EV_LAST,
              &FSM_STATE_GET(music_player, ST_ROOT), NULL);
 
     ret |= fsm_run(&music_player);  // Should be in OFF state (default substate of ROOT)

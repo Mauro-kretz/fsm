@@ -17,7 +17,7 @@
 #include "sdkconfig.h"
 
 #ifdef CONFIG_FREERTOS_PORT
-#define FREERTOS_API
+// #define FREERTOS_API
 #endif
 
 #ifdef FREERTOS_API
@@ -41,6 +41,11 @@
 
 #ifndef FSM_MAX_ACTORS 
 #define FSM_MAX_ACTORS  10
+#endif 
+
+#ifndef FSM_MAX_TRANSITIONS
+// Max number of transitions for an event
+#define FSM_MAX_TRANSITIONS 8
 #endif
 //----------------------------------------------------------------------
 //	DEFINITIONS
@@ -61,7 +66,7 @@
  * @brief FSM FIRST EVENT
  * 
  */
-#define FSM_EV_FIRST 0
+#define FSM_EV_FIRST 1
 
 //----------------------------------------------------------------------
 //	MACROS
@@ -114,7 +119,7 @@
 },                          
 
 #define FSM_TRANSITIONS_GET(name) name##_transitions
-#define FSM_TRANSITIONS_SIZE(name) (sizeof(name##_transitions)/sizeof(name##_transitions[0]))
+#define FSM_TRANSITIONS_SIZE(name) ((sizeof(name##_transitions)/sizeof(name##_transitions[0])-1))
 
 #define FSM_STATE_GET(name, id)   name##_states[id]
 
@@ -166,32 +171,15 @@ typedef struct {
     fsm_state_t* target_state;
 } fsm_transition_t;
 
+typedef struct {
+    fsm_state_t* source_state[FSM_MAX_TRANSITIONS+1];
+    fsm_state_t* target_state[FSM_MAX_TRANSITIONS+1];
+} fsm_smt_events_t;
+
 struct fsm_events_t
 {
     int event;
     void *data;
-};
-
-struct fsm_t {
-    // States transutions table
-    const fsm_transition_t *transitions;
-    // Total number of transitions
-    size_t num_transitions;
-    // Events ring buffer
-#ifdef FREERTOS_API
-    QueueHandle_t event_queue;
-#else
-    struct ringbuff event_queue;
-#endif 
-    struct fsm_events_t events_buff[FSM_MAX_EVENTS];
-    // Current state running
-    fsm_state_t* current_state;
-    // Current data
-    void* current_data;
-    // Terminate value
-    int terminate_val;
-    // Internal info
-    uint32_t internal;
 };
 
 typedef struct {
@@ -202,6 +190,35 @@ typedef struct {
     void (*exit_action)(fsm_t* self, void* data);
     void (*run_action)(fsm_t* self, void* data);
 } fsm_actor_t;
+
+struct fsm_t {
+    // States transutions table
+    const fsm_transition_t *transitions;
+    // Total number of transitions
+    size_t num_transitions;
+    // Total number of events
+    size_t num_events;
+    // Events ring buffer
+#ifdef FREERTOS_API
+    QueueHandle_t event_queue;
+#else
+    struct ringbuff event_queue;
+#endif 
+    struct fsm_events_t events_buff[FSM_MAX_EVENTS];
+    // Events table
+    fsm_smt_events_t smart_event[FSM_MAX_EVENTS+FSM_EV_FIRST];
+    // Current state running
+    fsm_state_t* current_state;
+    // Actors
+    fsm_actor_t* actors[FSM_MAX_ACTORS];
+    // Current data
+    void* current_data;
+    // Terminate value
+    int terminate_val;
+    // Internal info
+    uint32_t internal;
+};
+
 //----------------------------------------------------------------------
 //	FUNCTIONS
 //----------------------------------------------------------------------
@@ -212,10 +229,16 @@ typedef struct {
  * @param fsm               fsm pointer
  * @param transitions       Transitions table pointer
  * @param num_transitions   Number of transitions in the table
+ * @param num_events        Number of events in the fsm
  * @param initial_state     Default first state
  * @param initial_data      User custom data struct pointer
  */
-int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, const fsm_state_t* initial_state, void *initial_data);
+int fsm_init(fsm_t *fsm, 
+            const fsm_transition_t *transitions, 
+            size_t num_transitions, 
+            size_t num_events, 
+            const fsm_state_t* initial_state, 
+            void *initial_data);
 
 int fsm_actor_link(fsm_t *fsm, fsm_actor_t* actor);
 
