@@ -39,6 +39,9 @@
 #define MAX_HIERARCHY_DEPTH  8
 #endif
 
+#ifndef FSM_MAX_ACTORS 
+#define FSM_MAX_ACTORS  10
+#endif
 //----------------------------------------------------------------------
 //	DEFINITIONS
 //----------------------------------------------------------------------
@@ -63,8 +66,8 @@
 //----------------------------------------------------------------------
 //	MACROS
 //----------------------------------------------------------------------
-#define fsm_action(fsm, state, work) (fsm->transitions[state].action[work])
 
+// States table definition
 #define FSM_STATES_INIT(name)    static const fsm_state_t name##_states[] = { [0] = {0},
 #define FSM_STATES_END()        };
 
@@ -90,6 +93,7 @@
     .run_action = _run                                                      \
 },
 
+// Transition table definition
 #define FSM_TRANSITIONS_INIT(name) static const fsm_transition_t name##_transitions[] = { [0] = {0},
 #define FSM_TRANSITIONS_END()   };
 
@@ -113,6 +117,27 @@
 #define FSM_TRANSITIONS_SIZE(name) (sizeof(name##_transitions)/sizeof(name##_transitions[0]))
 
 #define FSM_STATE_GET(name, id)   name##_states[id]
+
+// actor table definition
+#define FSM_ACTOR_INIT(name) static const fsm_actor_t name##_actor[] = { [0] = {0},
+#define FSM_ACTOR_END()   };
+
+/**
+ * @brief Create a states array for the FSM
+ * 
+ * @param _name Should be the same as used in FSM_STATES_INIT(name)
+ * @param _source_id Source state ID
+ * @param event Event of the transition
+ * @param _target_id Target state ID
+ * 
+ */
+#define FSM_ACTOR_CREATE(_name, _source_id, _entry, _run, _exit)    \
+{                                                                   \
+    .source_state   = (fsm_state_t*)&_name##_actor[_source_id],     \
+    .entry_action   = _entry,                                       \
+    .exit_action    = _exit,                                        \
+    .run_action     = _run,                                         \
+},    
 //----------------------------------------------------------------------
 //	DECLARATIONS
 //----------------------------------------------------------------------
@@ -169,6 +194,14 @@ struct fsm_t {
     uint32_t internal;
 };
 
+typedef struct {
+    // State relevant to actor
+    fsm_state_t* source_state;
+    // Work to be done
+    void (*entry_action)(fsm_t* self, void* data);
+    void (*exit_action)(fsm_t* self, void* data);
+    void (*run_action)(fsm_t* self, void* data);
+} fsm_actor_t;
 //----------------------------------------------------------------------
 //	FUNCTIONS
 //----------------------------------------------------------------------
@@ -183,6 +216,8 @@ struct fsm_t {
  * @param initial_data      User custom data struct pointer
  */
 int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, const fsm_state_t* initial_state, void *initial_data);
+
+int fsm_actor_link(fsm_t *fsm, fsm_actor_t* actor);
 
 /**
  * @brief Dispatches an event to the state machine. It will be process when fsm_run is called.

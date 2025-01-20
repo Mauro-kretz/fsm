@@ -104,6 +104,21 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     return 0;
 }
 
+int fsm_actor_link(fsm_t *fsm, fsm_actor_t* actor) {
+    
+    for (uint16_t i = 0; i < FSM_MAX_ACTORS; i++)
+    {
+        // Search empty spot
+        if(fsm->actors[i].source_state->state_id == 0)
+        {
+            fsm->actors[i] = actor;
+
+            return 0;
+        }
+    }
+    return -1;
+}
+
 void fsm_dispatch(fsm_t *fsm, int event, void *data) {
     
     if(fsm == NULL) return;
