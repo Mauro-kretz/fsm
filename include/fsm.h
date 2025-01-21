@@ -152,7 +152,7 @@
 #define FSM_STATE_GET(name, id)   name##_states[id]
 
 #define FSM_ACTOR_GET(name)   name##_actor
-#define FSM_ACTOR_SIZE(name) ((sizeof(name##_actor)/sizeof(name##_actor[0])-1))
+#define FSM_ACTOR_SIZE(name) ((sizeof(name##_actor)/sizeof(name##_actor[0])))
 //----------------------------------------------------------------------
 //	DECLARATIONS
 //----------------------------------------------------------------------
