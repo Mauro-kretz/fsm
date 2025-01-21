@@ -203,7 +203,7 @@ struct fsm_actor_t {
 
 typedef struct {
     // Actor
-    struct fsm_actor_t* act;
+    struct fsm_actor_t* actor;
     // Actor's number of states
     int len;
 } fsm_actors_net_t;
@@ -227,7 +227,7 @@ struct fsm_t {
     // Current state running
     fsm_state_t* current_state;
     // Actors
-    fsm_actors_net_t actors[FSM_MAX_ACTORS];
+    fsm_actors_net_t actors_table[FSM_MAX_ACTORS];
     // Current data
     void* current_data;
     // Terminate value

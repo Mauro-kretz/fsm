@@ -57,11 +57,11 @@ static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *t
     }
     
     // Actors
-    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors_table[i].actor != NULL)); i++)
     {
-        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors_table[i].len; j++)
         {
-            if((fsm->actors[i].act[j].state_id == target->state_id) && (fsm->actors[i].act[j].entry_action != NULL)) fsm->actors[i].act[j].entry_action(fsm, data);
+            if((fsm->actors_table[i].actor[j].state_id == target->state_id) && (fsm->actors_table[i].actor[j].entry_action != NULL)) fsm->actors_table[i].actor[j].entry_action(fsm, data);
         }
     }
 
@@ -75,11 +75,11 @@ static void exit_state(fsm_t *fsm, const fsm_state_t *state, void *data) {
         }
     }
     // Actors
-    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors_table[i].actor != NULL)); i++)
     {
-        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors_table[i].len; j++)
         {
-            if((fsm->actors[i].act[j].state_id == state->state_id) && (fsm->actors[i].act[j].exit_action != NULL)) fsm->actors[i].act[j].exit_action(fsm, data);
+            if((fsm->actors_table[i].actor[j].state_id == state->state_id) && (fsm->actors_table[i].actor[j].exit_action != NULL)) fsm->actors_table[i].actor[j].exit_action(fsm, data);
         }
     }
 }
@@ -134,7 +134,7 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     internal->is_exit        = false;
     fsm->current_data        = initial_data;
 
-    memset(fsm->actors, 0, sizeof(fsm->actors));
+    memset(fsm->actors_table, 0, sizeof(fsm->actors_table));
 
     fsm_smart_events_init(fsm);
 
@@ -154,10 +154,10 @@ int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size) {
     for (uint16_t i = 0; i < FSM_MAX_ACTORS; i++)
     {
         // Search empty spot
-        if(fsm->actors[i].len == 0)
+        if(fsm->actors_table[i].len == 0)
         {
-            fsm->actors[i].act = actor;
-            fsm->actors[i].len = size;
+            fsm->actors_table[i].actor = actor;
+            fsm->actors_table[i].len = size;
 
             return 0;
         }
@@ -266,11 +266,11 @@ int fsm_run(fsm_t *fsm)
     }
 
     // Actors
-    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors_table[i].actor != NULL)); i++)
     {
-        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors_table[i].len; j++)
         {
-            if((fsm->actors[i].act[j].state_id == fsm->current_state->state_id) && (fsm->actors[i].act[j].run_action != NULL)) fsm->actors[i].act[j].run_action(fsm, fsm->current_data);
+            if((fsm->actors_table[i].actor[j].state_id == fsm->current_state->state_id) && (fsm->actors_table[i].actor[j].run_action != NULL)) fsm->actors_table[i].actor[j].run_action(fsm, fsm->current_data);
         }
     }
     return 0;
