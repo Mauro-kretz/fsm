@@ -40,22 +40,46 @@ Transitions are defined using the `fsm_transition_t` structure, which includes:
 
 Events are simple integers that trigger state transitions. They can be associated with user-defined data.
 
+### Actors
+
+In this FSM implementation, **actors** represent logical entities or components that manage the behavior of specific states within the system. Each actor consists of a collection of states, with each state defined by:
+
+- **`state_id`**: A unique identifier for the state.
+- **`entry_action`**: A function executed when entering the state.
+- **`run_action`**: A function invoked while the state is active.
+- **`exit_action`**: A function called when exiting the state.
+
+Actors allow grouping related state behaviors and actions into cohesive units, making the FSM modular and easier to extend or modify. This design is particularly useful for systems where multiple independent or semi-independent components (e.g., a player, a menu, or a power manager) operate within the same FSM framework.
+
+By using an array of actor pointers, the FSM can efficiently manage state transitions and actions for multiple entities.
 ## Usage
 
-### Defining States and Transitions
+### Defining States, Transitions and Actors
 
 Use the provided macros to define states and transitions:
 
 ```c
+//State table
 FSM_STATES_INIT(my_fsm)
 FSM_CREATE_STATE(my_fsm, STATE1, ROOT_ST, FSM_ST_NONE, enter_state1, run_state1, exit_state1)
 FSM_CREATE_STATE(my_fsm, STATE2, ROOT_ST, FSM_ST_NONE, enter_state2, run_state2, exit_state2)
 FSM_STATES_END()
-
+// Transition table
 FSM_TRANSITIONS_INIT(my_fsm)
 FSM_TRANSITION_CREATE(my_fsm, STATE1, EVENT1, STATE2)
 FSM_TRANSITION_CREATE(my_fsm, STATE2, EVENT2, STATE1)
 FSM_TRANSITIONS_END()
+
+// Actor 1
+FSM_ACTOR_INIT(my_actor)
+FSM_ACTOR_CREATE(my_fsm, STATE1, enter_state1_act1, run_state1_act1, NULL)
+FSM_ACTOR_CREATE(my_fsm, STATE2, enter_state2_act1, run_state2_act1, NULL)
+FSM_ACTOR_END()
+// Actor 2
+FSM_ACTOR_INIT(my_other_actor)
+FSM_ACTOR_CREATE(my_fsm, STATE1, enter_state1_act2, run_state1_act2, NULL)
+FSM_ACTOR_CREATE(my_fsm, STATE2, enter_state2_act2, run_state2_act2, NULL)
+FSM_ACTOR_END()
 ```
 
 ### Initializing the FSM
@@ -63,6 +87,11 @@ FSM_TRANSITIONS_END()
 ```c
 fsm_t my_fsm;
 fsm_init(&my_fsm, my_fsm_transitions, FSM_TRANSITIONS_SIZE(my_fsm), num_events, &FSM_STATE_GET(my_fsm, INIT_ST), initial_data);
+```
+### Linking actor
+
+```c
+ret = fsm_actor_link(&my_fsm, FSM_ACTOR_GET(my_actor), FSM_ACTOR_SIZE(my_actor));
 ```
 
 ### Running the FSM
