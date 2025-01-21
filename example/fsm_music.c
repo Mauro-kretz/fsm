@@ -79,6 +79,11 @@ static void run_volume_adjust(fsm_t* self, void* data);
 static void run_playlist_select(fsm_t* self, void* data);
 static void run_low_battery(fsm_t* self, void* data);
 
+// LED actor
+static void led_enter_off(fsm_t *self, void* data);
+static void led_enter_on(fsm_t *self, void* data);
+static void led_run_playing(fsm_t *self, void* data);
+
 // Define FSM states
 FSM_STATES_INIT(music_player)
 //                  name        state id          parent           sub          entry                 run                   exit
@@ -118,6 +123,13 @@ FSM_TRANSITION_CREATE(music_player, ST_ROOT,            EV_LOW_BATTERY, ST_LOW_B
 FSM_TRANSITION_CREATE(music_player, ST_LOW_BATTERY,     EV_CHARGE,      ST_ON)
 FSM_TRANSITIONS_END()
 
+// Actor led
+FSM_ACTOR_INIT(speaker_led)
+FSM_ACTOR_CREATE(ST_OFF, led_enter_off, NULL, NULL)
+FSM_ACTOR_CREATE(ST_ON, led_enter_on, NULL, NULL)
+FSM_ACTOR_CREATE(ST_PLAYING, NULL, led_run_playing, NULL)
+FSM_ACTOR_END()
+
 // Action function implementations
 static void enter_root(fsm_t *self, void* data) { print("Entering ROOT state\n"); }
 static void enter_off(fsm_t *self, void* data) { print("Entering OFF state\n"); }
@@ -145,6 +157,10 @@ static void run_volume_adjust(fsm_t* self, void* data) { print("Adjusting VOLUME
 static void run_playlist_select(fsm_t* self, void* data) { print("Selecting PLAYLIST\n"); }
 static void run_low_battery(fsm_t* self, void* data) { print("LOW BATTERY warning\n"); }
 
+// LED actor
+static void led_enter_off(fsm_t *self, void* data){print("Speaker's led is off")}
+static void led_enter_on(fsm_t *self, void* data){print("Speaker's led is on")}
+static void led_run_playing(fsm_t *self, void* data){print("Speaker's led is dancing")}
 
 int main() {
     fsm_t music_player;
@@ -153,9 +169,14 @@ int main() {
     // Simulate music player actions
     print("--- Starting Complex Music Player Simulation ---\n");
 
+    // FSM init
     fsm_init(&music_player, FSM_TRANSITIONS_GET(music_player), FSM_TRANSITIONS_SIZE(music_player), EV_LAST,
              &FSM_STATE_GET(music_player, ST_ROOT), NULL);
 
+    // Actor link
+    ret |= fsm_actor_link(&music_player, FSM_ACTOR_GET(speaker_led), FSM_ACTOR_SIZE(speaker_led));
+
+    // Running the FSM
     ret |= fsm_run(&music_player);  // Should be in OFF state (default substate of ROOT)
 
     fsm_dispatch(&music_player, EV_POWER, NULL);

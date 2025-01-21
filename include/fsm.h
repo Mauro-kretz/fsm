@@ -130,12 +130,12 @@
 #define FSM_ACTOR_END()   };
 
 /**
- * @brief Create a states array for the FSM
+ * @brief Create an actor array for the FSM
  * 
- * @param _name Should be the same as used in FSM_STATES_INIT(name)
  * @param _source_id Source state ID
- * @param event Event of the transition
- * @param _target_id Target state ID
+ * @param _entry Entry action function pointer
+ * @param _run Run action function pointer
+ * @param _exit Exit action function pointer
  * 
  */
 #define FSM_ACTOR_CREATE(_source_id, _entry, _run, _exit)    \

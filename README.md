@@ -168,6 +168,22 @@ This creates a simple state diagram with three states and transitions between th
 
 By using Mermaid to diagram your FSMs, you can easily keep your documentation in sync with your code, making it easier for developers to understand and maintain your state machines.
 
+### Using script for building mermaid diagram
+To make it easier to build your state machine diagrams, under fsm/tools there's a python script that you can use to facilitate this. 
+
+This script takes a .c file that implemets a finite state machine using the FSM library macros:
+
+- FSM_STATES_INIT()
+- FSM_CREATE_STATE()
+- FSM_TRANSITIONS_INIT()
+- FSM_TRANSITION_CREATE()
+    
+Usage: Call script from command line 
+```
+    - python fsm/tools/fsm_2_mermaid file_name
+```   
+Where file_name is the .c file that implements the fsm (has to have FSM_CREATE_STATE and FSM_TRANSITION_CREATE somewhere)
+
 ### Using Claude AI for Assistance
 To provide additional support for users of this FSM library, we recommend leveraging the capabilities of Claude AI, an advanced language model developed by Anthropic.
 Claude was used to help in the library development and documentation creation process, demonstrating its capability to assist throughout the project lifecycle. 
