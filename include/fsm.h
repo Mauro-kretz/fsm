@@ -138,12 +138,12 @@
  * @param _target_id Target state ID
  * 
  */
-#define FSM_ACTOR_CREATE(_fsm_name, _source_id, _entry, _run, _exit)    \
-{                                                                       \
-    .state_id   = _source_id,                                       \
-    .entry_action   = _entry,                                           \
-    .exit_action    = _exit,                                            \
-    .run_action     = _run,                                             \
+#define FSM_ACTOR_CREATE(_source_id, _entry, _run, _exit)    \
+{                                                            \
+    .state_id       = _source_id,                            \
+    .entry_action   = _entry,                                \
+    .exit_action    = _exit,                                 \
+    .run_action     = _run,                                  \
 },    
 
 #define FSM_TRANSITIONS_GET(name) name##_transitions
@@ -165,14 +165,15 @@ enum fsm_action_e
 
 typedef struct fsm_state_t fsm_state_t;
 typedef struct fsm_t fsm_t;
+typedef void (*fsm_action_t)(fsm_t* self, void* data);
 
 struct fsm_state_t {
     int state_id;
     fsm_state_t* parent;
     fsm_state_t* default_substate;
-    void (*entry_action)(fsm_t* self, void* data);
-    void (*exit_action)(fsm_t* self, void* data);
-    void (*run_action)(fsm_t* self, void* data);
+    fsm_action_t entry_action;
+    fsm_action_t exit_action;
+    fsm_action_t run_action;
 };
 
 typedef struct {
@@ -196,9 +197,9 @@ struct fsm_actor_t {
     // State relevant to actor
     int state_id;
     // Work to be done
-    void (*entry_action)(fsm_t* self, void* data);
-    void (*exit_action)(fsm_t* self, void* data);
-    void (*run_action)(fsm_t* self, void* data);
+    fsm_action_t entry_action;
+    fsm_action_t exit_action;
+    fsm_action_t run_action;
 } ;
 
 typedef struct {
