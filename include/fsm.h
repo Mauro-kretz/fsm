@@ -126,7 +126,7 @@
 
 
 // actor table definition
-#define FSM_ACTOR_INIT(name) static fsm_actor_t name##_actor[] = { [0] = {0},
+#define FSM_ACTOR_INIT(name) static struct fsm_actor_t name##_actor[] = { [0] = {0},
 #define FSM_ACTOR_END()   };
 
 /**
@@ -152,6 +152,7 @@
 #define FSM_STATE_GET(name, id)   name##_states[id]
 
 #define FSM_ACTOR_GET(name)   name##_actor
+#define FSM_ACTOR_SIZE(name) ((sizeof(name##_actor)/sizeof(name##_actor[0])-1))
 //----------------------------------------------------------------------
 //	DECLARATIONS
 //----------------------------------------------------------------------
@@ -191,14 +192,21 @@ struct fsm_events_t
     void *data;
 };
 
-typedef struct {
+struct fsm_actor_t {
     // State relevant to actor
     int state_id;
     // Work to be done
     void (*entry_action)(fsm_t* self, void* data);
     void (*exit_action)(fsm_t* self, void* data);
     void (*run_action)(fsm_t* self, void* data);
-} fsm_actor_t;
+} ;
+
+typedef struct {
+    // Actor
+    struct fsm_actor_t* act;
+    // Actor's number of states
+    int len;
+} fsm_actors_net_t;
 
 struct fsm_t {
     // States transutions table
@@ -219,7 +227,7 @@ struct fsm_t {
     // Current state running
     fsm_state_t* current_state;
     // Actors
-    fsm_actor_t* actors[FSM_MAX_ACTORS];
+    fsm_actors_net_t actors[FSM_MAX_ACTORS];
     // Current data
     void* current_data;
     // Terminate value
@@ -249,7 +257,7 @@ int fsm_init(fsm_t *fsm,
             const fsm_state_t* initial_state, 
             void *initial_data);
 
-int fsm_actor_link(fsm_t *fsm, fsm_actor_t *actor);
+int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size);
 
 /**
  * @brief Dispatches an event to the state machine. It will be process when fsm_run is called.

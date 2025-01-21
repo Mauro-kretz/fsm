@@ -20,14 +20,12 @@
 #else
 #include "ring_buff.h"
 #endif 
-#include "esp_log.h"
+
 struct internal_ctx {
 	int terminate:  1;
 	int is_exit:    1;
     int handled:    1;
 };
-
-static const char *TAG = "fsm";
 
 static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *target, void *data) {
     fsm_state_t* state_path[MAX_HIERARCHY_DEPTH];
@@ -59,9 +57,12 @@ static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *t
     }
     
     // Actors
-    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
     {
-        if((fsm->actors[i]->state_id == state_target->state_id) && (fsm->actors[i]->entry_action != NULL)) fsm->actors[i]->entry_action(fsm, data);
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        {
+            if((fsm->actors[i].act[j].state_id == target->state_id) && (fsm->actors[i].act[j].entry_action != NULL)) fsm->actors[i].act[j].entry_action(fsm, data);
+        }
     }
 
     fsm->current_state = (fsm_state_t*)state_target;
@@ -74,10 +75,12 @@ static void exit_state(fsm_t *fsm, const fsm_state_t *state, void *data) {
         }
     }
     // Actors
-    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
     {
-        ESP_LOGI(TAG, "for %d, st %d", (int)i, (int) fsm->actors[i]->state_id);
-        if((fsm->actors[i]->state_id == state->state_id) && (fsm->actors[i]->exit_action != NULL)) fsm->actors[i]->exit_action(fsm, data);
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        {
+            if((fsm->actors[i].act[j].state_id == state->state_id) && (fsm->actors[i].act[j].exit_action != NULL)) fsm->actors[i].act[j].exit_action(fsm, data);
+        }
     }
 }
 
@@ -146,15 +149,15 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     return 0;
 }
 
-int fsm_actor_link(fsm_t *fsm, fsm_actor_t *actor) {
+int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size) {
     
     for (uint16_t i = 0; i < FSM_MAX_ACTORS; i++)
     {
         // Search empty spot
-        if(fsm->actors[i] == NULL)
+        if(fsm->actors[i].len == 0)
         {
-            fsm->actors[i] = actor;
-            ESP_LOGI(TAG, "link %d, st %d", (int)i, (int)fsm->actors[i]->state_id);
+            fsm->actors[i].act = actor;
+            fsm->actors[i].len = size;
 
             return 0;
         }
@@ -263,12 +266,13 @@ int fsm_run(fsm_t *fsm)
     }
 
     // Actors
-    for (size_t i = FSM_ACTOR_FIRST; ((i < FSM_MAX_ACTORS) && (fsm->actors[i] != NULL)); i++)
+    for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors[i].act != NULL)); i++)
     {
-        ESP_LOGI(TAG, "for %d, st %d", (int)i, (int) fsm->actors[i]->state_id);
-        if((fsm->actors[i]->state_id == fsm->current_state->state_id) && (fsm->actors[i]->run_action != NULL)) fsm->actors[i]->run_action(fsm, fsm->current_data);
+        for (size_t j = FSM_ACTOR_FIRST; j < fsm->actors[i].len; j++)
+        {
+            if((fsm->actors[i].act[j].state_id == fsm->current_state->state_id) && (fsm->actors[i].act[j].run_action != NULL)) fsm->actors[i].act[j].run_action(fsm, fsm->current_data);
+        }
     }
-
     return 0;
 }
 
