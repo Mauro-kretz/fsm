@@ -77,8 +77,8 @@ FSM_ACTOR_CREATE(my_fsm, STATE2, enter_state2_act1, run_state2_act1, NULL)
 FSM_ACTOR_END()
 // Actor 2
 FSM_ACTOR_INIT(my_other_actor)
-FSM_ACTOR_CREATE(my_fsm, STATE1, enter_state1_act2, run_state1_act2, NULL)
-FSM_ACTOR_CREATE(my_fsm, STATE2, enter_state2_act2, run_state2_act2, NULL)
+FSM_ACTOR_CREATE(STATE1, enter_state1_act2, run_state1_act2, NULL)
+FSM_ACTOR_CREATE(STATE2, enter_state2_act2, run_state2_act2, NULL)
 FSM_ACTOR_END()
 ```
 
