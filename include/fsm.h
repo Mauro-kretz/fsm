@@ -14,8 +14,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "sdkconfig.h"
-
 #ifdef CONFIG_FREERTOS_PORT
 // #define FREERTOS_API
 #endif
