@@ -27,7 +27,7 @@ struct internal_ctx {
     int handled:    1;
 };
 
-static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *target, void *data) {
+static void enter_state(fsm_t *fsm, fsm_state_t *lca, fsm_state_t *target, void *data) {
     fsm_state_t* state_path[MAX_HIERARCHY_DEPTH];
     fsm_state_t* state_target = (fsm_state_t*)target;
     int depth = 0;
@@ -68,11 +68,12 @@ static void enter_state(fsm_t *fsm, const fsm_state_t *lca, const fsm_state_t *t
     fsm->current_state = (fsm_state_t*)state_target;
 }
 
-static void exit_state(fsm_t *fsm, const fsm_state_t *state, void *data) {
+static void exit_state(fsm_t *fsm, fsm_state_t *state, void *data) {
     for (fsm_state_t* s = fsm->current_state; s != state && s != NULL; s = s->parent) {
         if (s->exit_action) {
             s->exit_action(fsm, data);
         }
+        s->t_count = s->t_period;
     }
     // Actors
     for (size_t i = 0; ((i < FSM_MAX_ACTORS) && (fsm->actors_table[i].actor != NULL)); i++)
@@ -104,7 +105,7 @@ static void fsm_smart_events_init(fsm_t *fsm)
     memset(fsm->smart_event, 0, sizeof(fsm_smt_events_t));
 
     // Sorts transitions by event id
-    for (int i = FSM_EV_FIRST; i <= (fsm->num_events+FSM_EV_FIRST); i++)
+    for (int i = FSM_TIMEOUT_EV; i <= (fsm->num_events+FSM_EV_FIRST); i++)
     {
         for (int j = 1; j <= fsm->num_transitions; j++)
         {
@@ -120,7 +121,7 @@ static void fsm_smart_events_init(fsm_t *fsm)
     
 }
 
-int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, size_t num_events, const fsm_state_t* initial_state, void *initial_data) {
+int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, size_t num_events, uint32_t time_period_ticks, fsm_state_t* initial_state, void *initial_data) {
     struct internal_ctx *const internal = (void *)&fsm->internal;
 
     if(fsm == NULL || transitions == NULL || initial_state == NULL) return -1;
@@ -133,7 +134,8 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     internal->terminate      = false;
     internal->is_exit        = false;
     fsm->current_data        = initial_data;
-
+    fsm->fsm_ms_ticks        = time_period_ticks;
+    
     memset(fsm->actors_table, 0, sizeof(fsm->actors_table));
 
     fsm_smart_events_init(fsm);
@@ -151,6 +153,8 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
 
 int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size) {
     
+    if(fsm == NULL || actor == NULL) return -1;
+
     for (uint16_t i = 0; i < FSM_MAX_ACTORS; i++)
     {
         // Search empty spot
@@ -162,10 +166,20 @@ int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size) {
             return 0;
         }
     }
-    return -1;
+    return -2;
 }
 
-void fsm_dispatch(fsm_t *fsm, int event, void *data) {
+int fsm_timed_event_set(fsm_state_t *state, uint32_t ticks)
+{
+    if(state == NULL) return -1;
+
+    state->t_period = ticks;
+    state->t_count = ticks;
+
+    return 0;
+}
+
+void fsm_dispatch(fsm_t *fsm, uint32_t event, void *data) {
     
     if(fsm == NULL) return;
     if(fsm->num_transitions == 0) return;
@@ -318,4 +332,21 @@ void fsm_flush_events(fsm_t *fsm) {
 #else
     ringbuff_flush(&fsm->event_queue);
 #endif
+}
+
+void fsm_ticks_hook(fsm_t *fsm)
+{
+    struct fsm_events_t new_event = {FSM_TIMEOUT_EV, fsm->current_data};
+
+    if(fsm->current_state->t_count > 0)
+    {
+        fsm->current_state->t_count--;
+        if(fsm->current_state->t_count == 0) 
+        {
+            ringbuff_put_first(&fsm->event_queue, &new_event);
+#ifdef CONFIG_RUN_ON_TIMER_HOOK            
+            fsm_run(fsm);
+#endif            
+        }
+    }
 }

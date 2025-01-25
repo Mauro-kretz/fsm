@@ -170,7 +170,7 @@ int main() {
     print("--- Starting Complex Music Player Simulation ---\n");
 
     // FSM init
-    fsm_init(&music_player, FSM_TRANSITIONS_GET(music_player), FSM_TRANSITIONS_SIZE(music_player), EV_LAST,
+    fsm_init(&music_player, FSM_TRANSITIONS_GET(music_player), FSM_TRANSITIONS_SIZE(music_player), EV_LAST, 0,
              &FSM_STATE_GET(music_player, ST_ROOT), NULL);
 
     // Actor link
