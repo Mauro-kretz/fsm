@@ -22,10 +22,8 @@ enum {
 };
 
 // Action function prototypes
-static void enter_init(fsm_t *self, void* data);
 static void enter_on(fsm_t *self, void* data);
 static void enter_off(fsm_t *self, void* data);
-static void enter_update(fsm_t *self, void* data);
 
 // Define FSM states
 FSM_STATES_INIT(blinker)
@@ -68,6 +66,6 @@ int main(void)
     fsm_timed_event_set(&FSM_STATE_GET(blinker, OFF_ST), BLINK_PERIOD);
 
     while(1);
-    
+
     return 0;
 }
