@@ -26,6 +26,11 @@
 #endif 
 
 //----------------------------------------------------------------------
+//	CONFIGS
+//----------------------------------------------------------------------
+#define CONFIG_RUN_ON_TIMER_HOOK 1              // Runs the fsm inside the timed hook when a timout is triggered
+
+//----------------------------------------------------------------------
 //	DEFINES
 //----------------------------------------------------------------------
 
@@ -64,7 +69,7 @@
  * @brief FSM FIRST EVENT
  * 
  */
-#define FSM_EV_FIRST 1
+#define FSM_EV_FIRST 2
 
 /**
  * @brief FSM FIRST ACTOR
@@ -76,14 +81,14 @@
  * @brief FSM TIMED EVENT
  * 
  */
-#define FSM_TIMEOUT_EV -1
+#define FSM_TIMEOUT_EV 1
 
 //----------------------------------------------------------------------
 //	MACROS
 //----------------------------------------------------------------------
 
 // States table definition
-#define FSM_STATES_INIT(name)    static const fsm_state_t name##_states[] = { [0] = {0},
+#define FSM_STATES_INIT(name)    static fsm_state_t name##_states[] = { [0] = {0},
 #define FSM_STATES_END()        };
 
 /**
@@ -127,24 +132,6 @@
     .event = _event,                                                    \
     .target_state = (fsm_state_t*)&_name##_states[_target_id],          \
 },                          
-
-/**
- * @brief Create a timed transition for the FSM
- * 
- * @param _name Should be the same as used in FSM_STATES_INIT(name)
- * @param _source_id Source state ID
- * @param _ticks Number of ticks to wait for the event
- * @param _target_id Target state ID
- * 
- */
-#define FSM_TIMED_TRANSITION(_name, _source_id, _ticks, _target_id)     \
-{                                                                       \
-    .source_state = (fsm_state_t*)&_name##_states[_source_id],          \
-    .event = FSM_TIMEOUT_EV,                                            \
-    _name##_states[_source_id].t_period = _ticks,                       \
-    _name##_states[_source_id].t_count = _ticks,                        \
-    .target_state = (fsm_state_t*)&_name##_states[_target_id],          \
-},
 
 // Gets the number of ticks from time value in ms
 #define FSM_MS_2_TICKS(fsm, ms) (fsm.fsm_ms_ticks*ms)
@@ -209,7 +196,7 @@ struct fsm_state_t {
 
 typedef struct {
     fsm_state_t* source_state;
-    int event;
+    uint32_t event;
     fsm_state_t* target_state;
 } fsm_transition_t;
 
@@ -220,7 +207,7 @@ typedef struct {
 
 struct fsm_events_t
 {
-    int event;
+    uint32_t event;
     void *data;
 };
 
@@ -282,7 +269,7 @@ struct fsm_t {
  * @param transitions       Transitions table pointer
  * @param num_transitions   Number of transitions in the table
  * @param num_events        Number of events in the fsm
- * @param time_period_ticks Timer hook period (ticks / ms)
+ * @param time_period_ticks Timer hook period (ticks / ms), can be 0
  * @param initial_state     Default first state
  * @param initial_data      User custom data struct pointer
  */
@@ -291,10 +278,27 @@ int fsm_init(fsm_t *fsm,
             size_t num_transitions, 
             size_t num_events, 
             uint32_t time_period_ticks,
-            const fsm_state_t* initial_state, 
+            fsm_state_t* initial_state, 
             void *initial_data);
 
+/**
+ * @brief Links an actor to a fsm
+ * 
+ * @param fsm 
+ * @param actor 
+ * @param size 
+ * @return int 
+ */
 int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size);
+
+/**
+ * @brief Sets the period in tick of a state's transition
+ * 
+ * @param state State where the timed transition is
+ * @param ticks Ticks to wait for the trigger
+ * @return int 
+ */
+int fsm_timed_event_set(fsm_state_t *state, uint32_t ticks);
 
 /**
  * @brief Dispatches an event to the state machine. It will be process when fsm_run is called.
@@ -303,7 +307,7 @@ int fsm_actor_link(fsm_t *fsm, struct fsm_actor_t *actor, int size);
  * @param event 
  * @param data 
  */
-void fsm_dispatch(fsm_t *fsm, int event, void *data);
+void fsm_dispatch(fsm_t *fsm, uint32_t event, void *data);
 
 /**
  * @brief Runs the state machine.
@@ -352,5 +356,5 @@ void fsm_flush_events(fsm_t *fsm);
  * @param fsm 
  * @param data 
  */
-void fsm_ticks_hook(fsm_t *fsm, void *data);
+void fsm_ticks_hook(fsm_t *fsm);
 #endif /* FSM_H_ */
