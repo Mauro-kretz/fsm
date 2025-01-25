@@ -72,6 +72,7 @@ static void exit_state(fsm_t *fsm, const fsm_state_t *state, void *data) {
     for (fsm_state_t* s = fsm->current_state; s != state && s != NULL; s = s->parent) {
         if (s->exit_action) {
             s->exit_action(fsm, data);
+            s->t_count = s->t_period;
         }
     }
     // Actors
@@ -120,7 +121,7 @@ static void fsm_smart_events_init(fsm_t *fsm)
     
 }
 
-int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, size_t num_events, const fsm_state_t* initial_state, void *initial_data) {
+int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transitions, size_t num_events, uint32_t time_period_ticks, const fsm_state_t* initial_state, void *initial_data) {
     struct internal_ctx *const internal = (void *)&fsm->internal;
 
     if(fsm == NULL || transitions == NULL || initial_state == NULL) return -1;
@@ -133,7 +134,8 @@ int fsm_init(fsm_t *fsm, const fsm_transition_t *transitions, size_t num_transit
     internal->terminate      = false;
     internal->is_exit        = false;
     fsm->current_data        = initial_data;
-
+    fsm->fsm_ms_ticks        = time_period_ticks;
+    
     memset(fsm->actors_table, 0, sizeof(fsm->actors_table));
 
     fsm_smart_events_init(fsm);
@@ -318,4 +320,21 @@ void fsm_flush_events(fsm_t *fsm) {
 #else
     ringbuff_flush(&fsm->event_queue);
 #endif
+}
+
+void fsm_ticks_hook(fsm_t *fsm, void *data)
+{
+    struct fsm_events_t new_event = {FSM_TIMEOUT_EV, data};
+
+    if(fsm->current_state->t_count > 0)
+    {
+        fsm->current_state->t_count--;
+        if(fsm->current_state->t_count == 0) 
+        {
+            ringbuff_put_first(&fsm->event_queue, &new_event);
+// #ifdef CONFIG_RUN_ON_TIMER_HOOK            
+            fsm_run(fsm);
+// #endif            
+        }
+    }
 }

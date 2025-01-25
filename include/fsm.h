@@ -72,6 +72,12 @@
  */
 #define FSM_ACTOR_FIRST 1
 
+/**
+ * @brief FSM TIMED EVENT
+ * 
+ */
+#define FSM_TIMEOUT_EV -1
+
 //----------------------------------------------------------------------
 //	MACROS
 //----------------------------------------------------------------------
@@ -107,7 +113,7 @@
 #define FSM_TRANSITIONS_END()   };
 
 /**
- * @brief Create a states array for the FSM
+ * @brief Create a transitions array for the FSM
  * 
  * @param _name Should be the same as used in FSM_STATES_INIT(name)
  * @param _source_id Source state ID
@@ -122,6 +128,26 @@
     .target_state = (fsm_state_t*)&_name##_states[_target_id],          \
 },                          
 
+/**
+ * @brief Create a timed transition for the FSM
+ * 
+ * @param _name Should be the same as used in FSM_STATES_INIT(name)
+ * @param _source_id Source state ID
+ * @param _ticks Number of ticks to wait for the event
+ * @param _target_id Target state ID
+ * 
+ */
+#define FSM_TIMED_TRANSITION(_name, _source_id, _ticks, _target_id)     \
+{                                                                       \
+    .source_state = (fsm_state_t*)&_name##_states[_source_id],          \
+    .event = FSM_TIMEOUT_EV,                                            \
+    _name##_states[_source_id].t_period = _ticks,                       \
+    _name##_states[_source_id].t_count = _ticks,                        \
+    .target_state = (fsm_state_t*)&_name##_states[_target_id],          \
+},
+
+// Gets the number of ticks from time value in ms
+#define FSM_MS_2_TICKS(fsm, ms) (fsm.fsm_ms_ticks*ms)
 
 // actor table definition
 #define FSM_ACTOR_INIT(name) static struct fsm_actor_t name##_actor[] = { [0] = {0},
@@ -151,6 +177,7 @@
 
 #define FSM_ACTOR_GET(name)   name##_actor
 #define FSM_ACTOR_SIZE(name) ((sizeof(name##_actor)/sizeof(name##_actor[0])))
+
 //----------------------------------------------------------------------
 //	DECLARATIONS
 //----------------------------------------------------------------------
@@ -166,9 +193,15 @@ typedef struct fsm_t fsm_t;
 typedef void (*fsm_action_t)(fsm_t* self, void* data);
 
 struct fsm_state_t {
+    
     int state_id;
+    
+    uint32_t t_period;
+    uint32_t t_count;
+    
     fsm_state_t* parent;
     fsm_state_t* default_substate;
+    
     fsm_action_t entry_action;
     fsm_action_t exit_action;
     fsm_action_t run_action;
@@ -207,6 +240,7 @@ typedef struct {
     int len;
 } fsm_actors_net_t;
 
+
 struct fsm_t {
     // States transutions table
     const fsm_transition_t *transitions;
@@ -231,6 +265,8 @@ struct fsm_t {
     void* current_data;
     // Terminate value
     int terminate_val;
+    // Timer hook period (ticks / ms)
+    uint32_t fsm_ms_ticks;
     // Internal info
     uint32_t internal;
 };
@@ -246,6 +282,7 @@ struct fsm_t {
  * @param transitions       Transitions table pointer
  * @param num_transitions   Number of transitions in the table
  * @param num_events        Number of events in the fsm
+ * @param time_period_ticks Timer hook period (ticks / ms)
  * @param initial_state     Default first state
  * @param initial_data      User custom data struct pointer
  */
@@ -253,6 +290,7 @@ int fsm_init(fsm_t *fsm,
             const fsm_transition_t *transitions, 
             size_t num_transitions, 
             size_t num_events, 
+            uint32_t time_period_ticks,
             const fsm_state_t* initial_state, 
             void *initial_data);
 
@@ -308,4 +346,11 @@ int fsm_has_pending_events(fsm_t *fsm);
  */
 void fsm_flush_events(fsm_t *fsm);
 
+/**
+ * @brief Updates timed events.
+ * 
+ * @param fsm 
+ * @param data 
+ */
+void fsm_ticks_hook(fsm_t *fsm, void *data);
 #endif /* FSM_H_ */
