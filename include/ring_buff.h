@@ -67,6 +67,17 @@ int32_t ringbuff_get(struct ringbuff *const rb, void *data);
 int32_t ringbuff_put(struct ringbuff *const rb, void *data);
 
 /**
+ * \brief Put data in front of buffer
+ *
+ * \param[in] rb The pointer to a ring buffer structure instance
+ * \param[in] data One byte data to be put into ring buffer
+ * \param[in] priority 1: adds data to the front of the ring 
+ *
+ * \return ERR_NONE on success, or an error code on failure.
+ */
+int32_t ringbuff_put_first(struct ringbuff *const rb, void *data);
+
+/**
  * \brief Return the element number of ring buffer
  *
  * \param[in] rb The pointer to a ring buffer structure instance

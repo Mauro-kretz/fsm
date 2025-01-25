@@ -81,6 +81,27 @@ int32_t ringbuff_put(struct ringbuff *const rb, void *data)
 }
 
 /**
+ * \brief Put one data to ringbuff first
+ *
+ */
+int32_t ringbuff_put_first(struct ringbuff *const rb, void *data)
+{
+	assert(rb);
+
+	if(rb->p_read == (uint8_t *)rb->buf)
+	{
+		rb->p_read = ((uint8_t *)rb->buf + rb->data_size * (rb->len-1));
+	}else
+	{
+		rb->p_read -= rb->data_size;
+	}
+
+    memcpy(rb->p_read, data, rb->data_size);
+
+	return 0;
+}
+
+/**
  * \brief Return the element number of ringbuff
  */
 uint32_t ringbuff_num(const struct ringbuff *const rb)
