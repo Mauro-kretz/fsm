@@ -11,6 +11,10 @@
 #ifndef FSM_H_
 #define FSM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -357,4 +361,9 @@ void fsm_flush_events(fsm_t *fsm);
  * @param data 
  */
 void fsm_ticks_hook(fsm_t *fsm);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* FSM_H_ */

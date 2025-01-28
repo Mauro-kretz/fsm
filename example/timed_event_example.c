@@ -35,15 +35,15 @@ FSM_STATES_END()
 
 // Define FSM transitions
 FSM_TRANSITIONS_INIT(blinker)
-//                    fsm name    State source      event           state target
-FSM_TRANSITION_CREATE(blinker,      OFF_ST,         ON_EV,          ON_ST)
-FSM_TRANSITION_CREATE(blinker,      ON_ST,          OFF_EV,         OFF_ST)
-FSM_TRANSITION_CREATE(blinker,      OFF_ST,         TOGGLE_EV,      ON_ST)
-FSM_TRANSITION_CREATE(blinker,      ON_ST,          TOGGLE_EV,      OFF_ST)
+//                    fsm name    State source   event           state target
+FSM_TRANSITION_CREATE(blinker,      OFF_ST,      ON_EV,          ON_ST)
+FSM_TRANSITION_CREATE(blinker,      ON_ST,       OFF_EV,         OFF_ST)
+FSM_TRANSITION_CREATE(blinker,      OFF_ST,      FSM_TIMEOUT_EV, ON_ST)
+FSM_TRANSITION_CREATE(blinker,      ON_ST,       FSM_TIMEOUT_EV, OFF_ST)
 FSM_TRANSITIONS_END()
 
 /**
- * @brief User defined timer taht is called every 1ms
+ * @brief User defined timer that is called every 1ms
  * 
  * @param data 
  */
